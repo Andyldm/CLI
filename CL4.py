@@ -8,6 +8,7 @@ from sklearn.model_selection import KFold, StratifiedKFold
 from collections import Counter
 from sklearn import metrics
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import matthews_corrcoef
 from cleanlab.classification import LearningWithNoisyLabels
 from imblearn.over_sampling import SMOTE
@@ -22,14 +23,12 @@ from cleanlab.latent_estimation import (
 
 #不平衡：rus
 
-def get_noise(label_new,pre_new,xall_new,X_test,y_test):
+def get_noise(label_new,pre_new,xall_new,X_test,y_test,seed_t):
     label_new1=copy.deepcopy(label_new)
     pre_new1 = copy.deepcopy(pre_new)
     xall_new1 = copy.deepcopy(xall_new)
     XX = copy.deepcopy(X_test)
     y_test_no = copy.deepcopy(y_test)
-
-
 
     label_1 = label_new1.ravel()
     y_train2 = label_1.astype(np.int16)
@@ -64,7 +63,7 @@ def get_noise(label_new,pre_new,xall_new,X_test,y_test):
         sample_weight_k = 1.0 / noise_matrix[k][k]
         sample_weight[s_pruned == k] = sample_weight_k
 
-    log_reg = LogisticRegression(solver='liblinear')
+    log_reg = RandomForestClassifier(random_state=seed_t)
     # log_reg1 = LogisticRegression(solver='liblinear')
     log_reg.fit(x_pruned, s_pruned, sample_weight=sample_weight)
     pre1 = log_reg.predict(XX)
@@ -99,7 +98,7 @@ def con_learn():
     #第一列是原始f值，第二列是运用置信学习去噪的结果，第三列是不平衡+置信学习
     for i in range(10):
         csv_string = csv_order[i]
-        dataframe = pd.read_csv('data1/' + csv_string + '.csv')
+        dataframe = pd.read_csv('dataset/' + csv_string + '.csv')
         v = dataframe.iloc[:]
 
         train_v = np.array(v)
@@ -160,7 +159,7 @@ def con_learn():
 
                     # Fit the clf classifier to the training set and
                     # predict on the holdout set and update psx.
-                    log_reg = LogisticRegression(solver='liblinear')
+                    log_reg = RandomForestClassifier(random_state=seed[ix])
                     log_reg.fit(X_train_cv, s_train_cv)
                     psx_cv = log_reg.predict_proba(X_holdout_cv)  # P(s = k|x) # [:,1]
                     psx[cv_holdout_idx] = psx_cv
@@ -170,7 +169,7 @@ def con_learn():
                     rus = RandomUnderSampler(random_state=seed[ix])
                     X_resampled, y_resampled = rus.fit_sample(X_train_cv, s_train_cv)
                     #print(Counter(y_resampled))
-                    log_reg = LogisticRegression(solver='liblinear')
+                    log_reg = RandomForestClassifier(random_state=seed[ix])
                     log_reg.fit(X_resampled, y_resampled)
                     psx_cv1 = log_reg.predict_proba(X_holdout_cv)
                     psx1[cv_holdout_idx] = psx_cv1
@@ -178,12 +177,13 @@ def con_learn():
 
 
 
-                log_reg = LogisticRegression(solver='liblinear')
+                log_reg = RandomForestClassifier(random_state=seed[ix])
                 log_reg.fit(X_train, y_train)
                 pre1 = log_reg.predict(X_test)
                 y_test_1 = y_test.ravel()
                 y_original = metrics.f1_score(y_test_1, pre1, pos_label=1, average="binary")
                 y_or.append(y_original)
+                print(y_original)
                 prob = log_reg.predict_proba(X_test)
                 thresholds = metrics.roc_auc_score(y_test_1, prob[:, -1])
                 auc_or.append(thresholds)
@@ -192,13 +192,13 @@ def con_learn():
                 mcc = matthews_corrcoef(y_test_1, pre1)
                 mcc_or.append(mcc)
 
-                y_original, thresholds1, acc1, mcc1 = get_noise(y_train, psx, X_train, X_test, y_test)
+                y_original, thresholds1, acc1, mcc1 = get_noise(y_train, psx, X_train, X_test, y_test,seed[ix])
                 y_or1.append(y_original)
                 auc_or1.append(thresholds1)
                 acc_or1.append(acc1)
                 mcc_or1.append(mcc1)
 
-                y_original, thresholds2, acc2, mcc2 = get_noise(y_train, psx1, X_train, X_test, y_test)
+                y_original, thresholds2, acc2, mcc2 = get_noise(y_train, psx1, X_train, X_test, y_test,seed[ix])
                 y_or2.append(y_original)
                 auc_or2.append(thresholds2)
                 acc_or2.append(acc2)

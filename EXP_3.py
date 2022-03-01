@@ -12,6 +12,7 @@ from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import accuracy_score
 from cleanlab.classification import LearningWithNoisyLabels
 from imblearn.over_sampling import SMOTE
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from imblearn.under_sampling import RandomUnderSampler
 from cleanlab.pruning import get_noise_indices
 import warnings
@@ -22,7 +23,7 @@ from cleanlab.latent_estimation import (
 
 #实验6
 
-def get_noise(label_new,pre_new,xall_new,X_test,y_test):
+def get_noise(label_new,pre_new,xall_new,X_test,y_test,seed_t):
     label_new1=copy.deepcopy(label_new)
     pre_new1 = copy.deepcopy(pre_new)
     xall_new1 = copy.deepcopy(xall_new)
@@ -64,7 +65,7 @@ def get_noise(label_new,pre_new,xall_new,X_test,y_test):
         sample_weight_k = 1.0 / noise_matrix[k][k]
         sample_weight[s_pruned == k] = sample_weight_k
 
-    log_reg = LogisticRegression(solver='liblinear')
+    log_reg = RandomForestClassifier(random_state=seed_t)
     # log_reg1 = LogisticRegression(solver='liblinear')
     log_reg.fit(x_pruned, s_pruned, sample_weight=sample_weight)
     pre1 = log_reg.predict(XX)
@@ -90,7 +91,7 @@ def get_psx(g_x,g_y,seed_ix):
 
         # Fit the clf classifier to the training set and
         # predict on the holdout set and update psx.
-        log_reg = LogisticRegression(solver='liblinear')
+        log_reg = RandomForestClassifier(random_state=seed_ix)
         log_reg.fit(X_train_cv, s_train_cv)
         psx_cv = log_reg.predict_proba(X_holdout_cv)  # P(s = k|x) # [:,1]
         psx[cv_holdout_idx] = psx_cv
@@ -98,7 +99,7 @@ def get_psx(g_x,g_y,seed_ix):
         rus = RandomUnderSampler(random_state=seed_ix)
         X_resampled, y_resampled = rus.fit_sample(X_train_cv, s_train_cv)
         # print(Counter(y_resampled))
-        log_reg = LogisticRegression(solver='liblinear')
+        log_reg = RandomForestClassifier(random_state=seed_ix)
         log_reg.fit(X_resampled, y_resampled)
         psx_cv1 = log_reg.predict_proba(X_holdout_cv)
         psx1[cv_holdout_idx] = psx_cv1
@@ -120,7 +121,7 @@ def con_learn():
     #第一列是原始f值，第二列是运用置信学习去噪的结果，第三列是不平衡+置信学习
     for i in range(10):
         csv_string = csv_order[i]
-        dataframe = pd.read_csv('data2/' + csv_string + '.csv')
+        dataframe = pd.read_csv('dataset/' + csv_string + '.csv')
         v = dataframe.iloc[:]
 
         train_v = np.array(v)
@@ -182,7 +183,7 @@ def con_learn():
 
 
 
-                log_reg = LogisticRegression(solver='liblinear')
+                log_reg = RandomForestClassifier(random_state=seed[ix])
                 log_reg.fit(X_train, y_train_RA)
                 pre1 = log_reg.predict(X_test)
                 y_test_1 = y_test.ravel()
@@ -195,18 +196,18 @@ def con_learn():
                 y_or[2].append(acc)
                 mcc = matthews_corrcoef(y_test_1, pre1)
                 y_or[3].append(mcc)
-                y_original,auc,acc,mcc = get_noise(y_train_RA,psx_RA,X_train,X_test,y_test)
+                y_original,auc,acc,mcc = get_noise(y_train_RA,psx_RA,X_train,X_test,y_test,seed[ix])
                 y_or1[0].append(y_original)
                 y_or1[1].append(auc)
                 y_or1[2].append(acc)
                 y_or1[3].append(mcc)
-                y_original,auc,acc,mcc = get_noise(y_train_RA,psx1_RA,X_train,X_test,y_test)
+                y_original,auc,acc,mcc = get_noise(y_train_RA,psx1_RA,X_train,X_test,y_test,seed[ix])
                 y_or2[0].append(y_original)
                 y_or2[1].append(auc)
                 y_or2[2].append(acc)
                 y_or2[3].append(mcc)
 
-                log_reg = LogisticRegression(solver='liblinear')
+                log_reg = RandomForestClassifier(random_state=seed[ix])
                 log_reg.fit(X_train, y_train_B)
                 pre1 = log_reg.predict(X_test)
                 y_test_1 = y_test.ravel()
@@ -219,18 +220,18 @@ def con_learn():
                 y_or_B[2].append(acc)
                 mcc = matthews_corrcoef(y_test_1, pre1)
                 y_or_B[3].append(mcc)
-                y_original,auc,acc,mcc = get_noise(y_train_B, psx_B, X_train, X_test, y_test)
+                y_original,auc,acc,mcc = get_noise(y_train_B, psx_B, X_train, X_test, y_test,seed[ix])
                 y_or1_B[0].append(y_original)
                 y_or1_B[1].append(auc)
                 y_or1_B[2].append(acc)
                 y_or1_B[3].append(mcc)
-                y_original,auc,acc,mcc = get_noise(y_train_B, psx1_B, X_train, X_test, y_test)
+                y_original,auc,acc,mcc = get_noise(y_train_B, psx1_B, X_train, X_test, y_test,seed[ix])
                 y_or2_B[0].append(y_original)
                 y_or2_B[1].append(auc)
                 y_or2_B[2].append(acc)
                 y_or2_B[3].append(mcc)
 
-                log_reg = LogisticRegression(solver='liblinear')
+                log_reg = RandomForestClassifier(random_state=seed[ix])
                 log_reg.fit(X_train, y_train_AG)
                 pre1 = log_reg.predict(X_test)
                 y_test_1 = y_test.ravel()
@@ -243,18 +244,18 @@ def con_learn():
                 y_or_AG[2].append(acc)
                 mcc = matthews_corrcoef(y_test_1, pre1)
                 y_or_AG[3].append(mcc)
-                y_original,auc,acc,mcc  = get_noise(y_train_AG, psx_AG, X_train, X_test, y_test)
+                y_original,auc,acc,mcc  = get_noise(y_train_AG, psx_AG, X_train, X_test, y_test,seed[ix])
                 y_or1_AG[0].append(y_original)
                 y_or1_AG[1].append(auc)
                 y_or1_AG[2].append(acc)
                 y_or1_AG[3].append(mcc)
-                y_original, auc, acc, mcc = get_noise(y_train_AG, psx1_AG, X_train, X_test, y_test)
+                y_original, auc, acc, mcc = get_noise(y_train_AG, psx1_AG, X_train, X_test, y_test,seed[ix])
                 y_or2_AG[0].append(y_original)
                 y_or2_AG[1].append(auc)
                 y_or2_AG[2].append(acc)
                 y_or2_AG[3].append(mcc)
 
-                log_reg = LogisticRegression(solver='liblinear')
+                log_reg = RandomForestClassifier(random_state=seed[ix])
                 log_reg.fit(X_train, y_train_MA)
                 pre1 = log_reg.predict(X_test)
                 y_test_1 = y_test.ravel()
@@ -267,12 +268,12 @@ def con_learn():
                 y_or_MA[2].append(acc)
                 mcc = matthews_corrcoef(y_test_1, pre1)
                 y_or_MA[3].append(mcc)
-                y_original,auc,acc,mcc = get_noise(y_train_MA, psx_MA, X_train, X_test, y_test)
+                y_original,auc,acc,mcc = get_noise(y_train_MA, psx_MA, X_train, X_test, y_test,seed[ix])
                 y_or1_MA[0].append(y_original)
                 y_or1_MA[1].append(auc)
                 y_or1_MA[2].append(acc)
                 y_or1_MA[3].append(mcc)
-                y_original,auc,acc,mcc  = get_noise(y_train_MA, psx1_MA, X_train, X_test, y_test)
+                y_original,auc,acc,mcc  = get_noise(y_train_MA, psx1_MA, X_train, X_test, y_test,seed[ix])
                 y_or2_MA[0].append(y_original)
                 y_or2_MA[1].append(auc)
                 y_or2_MA[2].append(acc)
